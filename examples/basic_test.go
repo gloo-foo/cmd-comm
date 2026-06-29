@@ -1,8 +1,9 @@
 package comm_test
 
 import (
-	. "github.com/gloo-foo/cmd-comm"
 	yup "github.com/gloo-foo/framework/patterns"
+
+	command "github.com/gloo-foo/cmd-comm"
 )
 
 // ExampleComm_basic shows the default behavior comparing two sorted files.
@@ -12,7 +13,7 @@ import (
 //   - Column 3: lines in both files (indented with two tabs)
 func ExampleComm_basic() {
 	yup.MustRun(
-		Comm("testdata/fruits1.txt", "testdata/fruits2.txt"),
+		command.Comm("testdata/fruits1.txt", "testdata/fruits2.txt"),
 	)
 	// Output:
 	// apple
@@ -25,7 +26,7 @@ func ExampleComm_basic() {
 // Shows only: lines unique to file2 + common lines
 func ExampleComm_suppressColumn1() {
 	yup.MustRun(
-		Comm("testdata/fruits1.txt", "testdata/fruits2.txt", CommSuppressColumn1),
+		command.Comm("testdata/fruits1.txt", "testdata/fruits2.txt", command.CommSuppressColumn1),
 	)
 	// Output:
 	// 	banana
@@ -37,7 +38,7 @@ func ExampleComm_suppressColumn1() {
 // Shows only: lines unique to file1 + common lines
 func ExampleComm_suppressColumn2() {
 	yup.MustRun(
-		Comm("testdata/fruits1.txt", "testdata/fruits2.txt", CommSuppressColumn2),
+		command.Comm("testdata/fruits1.txt", "testdata/fruits2.txt", command.CommSuppressColumn2),
 	)
 	// Output:
 	// apple
@@ -49,7 +50,7 @@ func ExampleComm_suppressColumn2() {
 // Shows only: lines unique to each file
 func ExampleComm_suppressColumn3() {
 	yup.MustRun(
-		Comm("testdata/fruits1.txt", "testdata/fruits2.txt", CommSuppressColumn3),
+		command.Comm("testdata/fruits1.txt", "testdata/fruits2.txt", command.CommSuppressColumn3),
 	)
 	// Output:
 	// apple
@@ -60,10 +61,10 @@ func ExampleComm_suppressColumn3() {
 // This is done by suppressing columns 1 and 2.
 func ExampleComm_commonOnly() {
 	yup.MustRun(
-		Comm(
+		command.Comm(
 			"testdata/fruits1.txt", "testdata/fruits2.txt",
-			CommSuppressColumn1,
-			CommSuppressColumn2,
+			command.CommSuppressColumn1,
+			command.CommSuppressColumn2,
 		),
 	)
 	// Output:
@@ -75,7 +76,7 @@ func ExampleComm_commonOnly() {
 // This is done by suppressing column 3 (common lines).
 func ExampleComm_uniqueOnly() {
 	yup.MustRun(
-		Comm("testdata/fruits1.txt", "testdata/fruits2.txt", CommSuppressColumn3),
+		command.Comm("testdata/fruits1.txt", "testdata/fruits2.txt", command.CommSuppressColumn3),
 	)
 	// Output:
 	// apple

@@ -1,6 +1,9 @@
 package command
 
-import "github.com/spf13/afero"
+import (
+	gloo "github.com/gloo-foo/framework"
+	"github.com/spf13/afero"
+)
 
 // commSuppress1Flag suppresses column 1 (lines only in file1).
 type commSuppress1Flag bool
@@ -37,7 +40,7 @@ func (f commSuppress3Flag) Configure(flags *flags) { flags.suppress3 = f }
 type commFs struct{ afero.Fs }
 
 // CommFs selects the filesystem comm uses to open File positional arguments.
-func CommFs(fs afero.Fs) commFs { return commFs{fs} }
+func CommFs(fs afero.Fs) gloo.Switch[flags] { return commFs{fs} }
 
 func (f commFs) Configure(flags *flags) { flags.fs = f }
 
@@ -50,8 +53,8 @@ func (f commFs) value() afero.Fs {
 }
 
 type flags struct {
+	fs        commFs
 	suppress1 commSuppress1Flag
 	suppress2 commSuppress2Flag
 	suppress3 commSuppress3Flag
-	fs        commFs
 }

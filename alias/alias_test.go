@@ -4,8 +4,9 @@ import (
 	"slices"
 	"testing"
 
-	comm "github.com/gloo-foo/cmd-comm/alias"
 	"github.com/gloo-foo/testable"
+
+	comm "github.com/gloo-foo/cmd-comm/alias"
 )
 
 // The alias package re-exports the constructor and flag constants under

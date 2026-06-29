@@ -8,9 +8,8 @@ import (
 	"io"
 
 	"github.com/destel/rill"
-	"github.com/spf13/afero"
-
 	gloo "github.com/gloo-foo/framework"
+	"github.com/spf13/afero"
 )
 
 // CommInput supplies the second input as raw lines, taking precedence over any
@@ -66,7 +65,7 @@ type sources struct {
 }
 
 // newSources classifies the opts into the resolved input sources.
-func newSources(opts []any, positionals []any, fs afero.Fs) sources {
+func newSources(opts, positionals []any, fs afero.Fs) sources {
 	explicit, ok := explicitInput2(opts)
 	return sources{
 		fs:             fs,
@@ -155,11 +154,11 @@ func scanLines(r io.Reader) (lines, error) {
 // suppression and the GNU indentation-collapse rule.
 type columns struct {
 	send       func([]byte) bool
+	col2Prefix []byte
+	col3Prefix []byte
 	emit1      bool
 	emit2      bool
 	emit3      bool
-	col2Prefix []byte
-	col3Prefix []byte
 }
 
 // columnsOf builds the column renderer from the suppression flags.

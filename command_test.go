@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
+	gloo "github.com/gloo-foo/framework"
+	"github.com/gloo-foo/testable"
 	"github.com/spf13/afero"
 
 	command "github.com/gloo-foo/cmd-comm"
-	gloo "github.com/gloo-foo/framework"
-	"github.com/gloo-foo/testable"
 )
 
 // comm produces three columns from two SORTED inputs:
