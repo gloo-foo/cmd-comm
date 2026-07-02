@@ -35,9 +35,9 @@ type lines [][]byte
 // suppressed, columns 2 and 3 lose their leading tab; when column 2 is also
 // suppressed, column 3 loses its second tab. This matches GNU comm.
 func Comm(opts ...any) gloo.Command[[]byte, []byte] {
-	params := gloo.NewParameters[gloo.File, flags](opts...)
-	f := params.Flags
-	src := newSources(opts, params.Positional, f.fs.value())
+	f, rest := fold(opts)
+	params := gloo.NewParameters[gloo.File, struct{}](rest...)
+	src := newSources(opts, params.Positional, fsOrOS(f.fs))
 	return gloo.FuncCommand[[]byte, []byte](func(ctx context.Context, in gloo.Stream[[]byte]) gloo.Stream[[]byte] {
 		return gloo.GenerateFrom(ctx, in, func(_ context.Context, send func([]byte) bool, sendErr func(error)) {
 			run(send, sendErr, src, in, f)
@@ -153,25 +153,25 @@ func scanLines(r io.Reader) (lines, error) {
 // columns renders the three comm output columns through send, honoring
 // suppression and the GNU indentation-collapse rule.
 type columns struct {
-	send       func([]byte) bool
-	col2Prefix []byte
-	col3Prefix []byte
-	emit1      bool
-	emit2      bool
-	emit3      bool
+	send        func([]byte) bool
+	col2Prefix  []byte
+	col3Prefix  []byte
+	shouldEmit1 bool
+	shouldEmit2 bool
+	shouldEmit3 bool
 }
 
 // columnsOf builds the column renderer from the suppression flags.
 func columnsOf(send func([]byte) bool, f flags) columns {
-	emit1 := !bool(f.suppress1)
-	emit2 := !bool(f.suppress2)
+	isPresent1 := columnPresence(!bool(f.suppress1Enabled))
+	isPresent2 := columnPresence(!bool(f.suppress2Enabled))
 	return columns{
-		send:       send,
-		emit1:      emit1,
-		emit2:      emit2,
-		emit3:      !bool(f.suppress3),
-		col2Prefix: indent(emit1),
-		col3Prefix: append(indent(emit1), indent(emit2)...),
+		send:        send,
+		shouldEmit1: bool(isPresent1),
+		shouldEmit2: bool(isPresent2),
+		shouldEmit3: !bool(f.suppress3Enabled),
+		col2Prefix:  indent(isPresent1),
+		col3Prefix:  append(indent(isPresent1), indent(isPresent2)...),
 	}
 }
 
@@ -181,8 +181,8 @@ func (c columns) merge(input1, input2 lines) {
 	for i < len(input1) && j < len(input2) {
 		i, j = c.step(input1, input2, i, j)
 	}
-	c.drain(input1[i:], c.emit1, nil)
-	c.drain(input2[j:], c.emit2, c.col2Prefix)
+	c.drain(input1[i:], c.shouldEmit1, nil)
+	c.drain(input2[j:], c.shouldEmit2, c.col2Prefix)
 }
 
 // step compares the lines at i and j, emits the appropriate column, and returns
@@ -190,34 +190,38 @@ func (c columns) merge(input1, input2 lines) {
 func (c columns) step(input1, input2 lines, i, j int) (int, int) {
 	switch cmp := bytes.Compare(input1[i], input2[j]); {
 	case cmp < 0:
-		c.put(c.emit1, nil, input1[i])
+		c.put(c.shouldEmit1, nil, input1[i])
 		return i + 1, j
 	case cmp > 0:
-		c.put(c.emit2, c.col2Prefix, input2[j])
+		c.put(c.shouldEmit2, c.col2Prefix, input2[j])
 		return i, j + 1
 	default:
-		c.put(c.emit3, c.col3Prefix, input1[i])
+		c.put(c.shouldEmit3, c.col3Prefix, input1[i])
 		return i + 1, j + 1
 	}
 }
 
 // drain emits any remaining lines of one input under a fixed column.
-func (c columns) drain(rest lines, emit bool, prefix []byte) {
+func (c columns) drain(rest lines, isEmit bool, prefix []byte) {
 	for _, line := range rest {
-		c.put(emit, prefix, line)
+		c.put(isEmit, prefix, line)
 	}
 }
 
 // put emits one prefixed line when its column is enabled.
-func (c columns) put(emit bool, prefix, line []byte) {
-	if emit {
+func (c columns) put(isEmit bool, prefix, line []byte) {
+	if isEmit {
 		c.send(append(bytes.Clone(prefix), line...))
 	}
 }
 
+// columnPresence reports whether a preceding output column is displayed, and
+// so contributes one leading tab to the indentation of the columns after it.
+type columnPresence bool
+
 // indent returns a single tab when the preceding column is present, else empty.
-func indent(present bool) []byte {
-	if present {
+func indent(isPresent columnPresence) []byte {
+	if bool(isPresent) {
 		return []byte{'\t'}
 	}
 	return nil

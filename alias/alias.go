@@ -1,19 +1,24 @@
-// Package alias provides unprefixed type aliases for comm command flags.
+// Package alias provides unprefixed names for comm command flags.
 //
 //	import comm "github.com/gloo-foo/cmd-comm/alias"
 //	comm.Comm(input, comm.SuppressColumn1)
 package alias
 
-import command "github.com/gloo-foo/cmd-comm"
+import (
+	gloo "github.com/gloo-foo/framework"
 
-// Comm re-exports the constructor.
-var Comm = command.Comm
+	command "github.com/gloo-foo/cmd-comm"
+)
+
+// Comm compares two sorted line streams and emits the three GNU comm columns;
+// see the command package for the flag set.
+func Comm(opts ...any) gloo.Command[[]byte, []byte] { return command.Comm(opts...) }
 
 // CommInput re-exports the second-input type.
 type CommInput = command.CommInput
 
 // CommFs re-exports the filesystem-injection option.
-var CommFs = command.CommFs
+type CommFs = command.CommFs
 
 // -1 flag: suppress column 1 (lines only in file1)
 const SuppressColumn1 = command.CommSuppressColumn1

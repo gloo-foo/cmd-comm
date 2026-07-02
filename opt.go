@@ -1,7 +1,6 @@
 package command
 
 import (
-	gloo "github.com/gloo-foo/framework"
 	"github.com/spf13/afero"
 )
 
@@ -13,8 +12,6 @@ const (
 	CommNoSuppressColumn1 commSuppress1Flag = false
 )
 
-func (f commSuppress1Flag) Configure(flags *flags) { flags.suppress1 = f }
-
 // commSuppress2Flag suppresses column 2 (lines only in file2).
 type commSuppress2Flag bool
 
@@ -22,8 +19,6 @@ const (
 	CommSuppressColumn2   commSuppress2Flag = true
 	CommNoSuppressColumn2 commSuppress2Flag = false
 )
-
-func (f commSuppress2Flag) Configure(flags *flags) { flags.suppress2 = f }
 
 // commSuppress3Flag suppresses column 3 (lines in both files).
 type commSuppress3Flag bool
@@ -33,28 +28,46 @@ const (
 	CommNoSuppressColumn3 commSuppress3Flag = false
 )
 
-func (f commSuppress3Flag) Configure(flags *flags) { flags.suppress3 = f }
+// CommFs selects the filesystem comm uses to open File positional arguments,
+// so tests can supply an in-memory filesystem: CommFs(afero.NewMemMapFs()).
+// When absent, comm falls back to the OS filesystem.
+type CommFs afero.Fs
 
-// commFs injects the filesystem used to open File positionals, so tests can
-// supply an in-memory filesystem. The zero value falls back to the OS.
-type commFs struct{ afero.Fs }
-
-// CommFs selects the filesystem comm uses to open File positional arguments.
-func CommFs(fs afero.Fs) gloo.Switch[flags] { return commFs{fs} }
-
-func (f commFs) Configure(flags *flags) { flags.fs = f }
-
-// value returns the configured filesystem, defaulting to the OS filesystem.
-func (f commFs) value() afero.Fs {
-	if f.Fs == nil {
+// fsOrOS returns the injected filesystem, defaulting to the OS filesystem.
+func fsOrOS(fs CommFs) afero.Fs {
+	if fs == nil {
 		return afero.NewOsFs()
 	}
-	return f.Fs
+	return fs
 }
 
+// flags is the option set folded from a Comm call's option values.
 type flags struct {
-	fs        commFs
-	suppress1 commSuppress1Flag
-	suppress2 commSuppress2Flag
-	suppress3 commSuppress3Flag
+	fs               CommFs
+	suppress1Enabled commSuppress1Flag
+	suppress2Enabled commSuppress2Flag
+	suppress3Enabled commSuppress3Flag
+}
+
+// fold partitions opts: comm's own option values are folded into the flag set,
+// and every other argument is passed through unchanged for the framework's
+// positional classifier.
+func fold(opts []any) (flags, []any) {
+	var f flags
+	rest := make([]any, 0, len(opts))
+	for _, o := range opts {
+		switch v := o.(type) {
+		case commSuppress1Flag:
+			f.suppress1Enabled = v
+		case commSuppress2Flag:
+			f.suppress2Enabled = v
+		case commSuppress3Flag:
+			f.suppress3Enabled = v
+		case CommFs:
+			f.fs = v
+		default:
+			rest = append(rest, o)
+		}
+	}
+	return f, rest
 }
