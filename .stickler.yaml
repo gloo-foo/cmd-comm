@@ -14,4 +14,4 @@ soft:
   - yze/invariant
 
 soft-baseline:
-  yze/invariant: 1
+  yze/invariant: 0
