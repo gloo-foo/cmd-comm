@@ -263,3 +263,34 @@ var errBoom = errors.New("boom")
 type errReader struct{}
 
 func (errReader) Read([]byte) (int, error) { return 0, errBoom }
+
+// TestReadPositionalHandlesBothKindsTheFrameworkProduces pins the exhaustive
+// type switch. gloo.NewParameters yields exactly two shapes for a positional —
+// a gloo.File path or an io.Reader — so readPositional handles the first and
+// asserts the second. If the framework ever grew a third, that assertion would
+// panic at runtime in a command nobody changed, and this is the test that says
+// so first.
+func TestReadPositionalHandlesBothKindsTheFrameworkProduces(t *testing.T) {
+	fs := afero.NewMemMapFs()
+	if err := afero.WriteFile(fs, "only.txt", []byte("apple\nbanana\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	fromFile, err := testable.TestLines(
+		command.Comm(gloo.File("only.txt"), gloo.File("only.txt"), command.CommFs(fs)),
+		"ignored upstream\n",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fromReader, err := testable.TestLines(
+		command.Comm(input2("apple", "banana")),
+		"apple\nbanana\n",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertLines(t, fromFile, fromReader)
+}
